@@ -68,18 +68,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if os.environ.get('DATABASE_URL'):
-    DATABASES['default'] = dj_database_url.parse(
-        os.environ['DATABASE_URL'],
-        conn_max_age=600,
-    )
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+    }
+elif RENDER_HOST or not DEBUG:
+    raise RuntimeError('DATABASE_URL is not set. Refusing to start on a temporary SQLite database.')
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_USER_MODEL = 'accounts.User'
 
