@@ -1,9 +1,15 @@
-
+from datetime import timedelta
 
 DELIVERY_PRICES = {
     'standard': 1250,
     'express': 1890,
     'priority': 3200,
+}
+
+DELIVERY_DAYS = {
+    'standard': 10,
+    'express': 4,
+    'priority': 2,
 }
 
 INSURANCE_CENTS = 50
@@ -19,3 +25,7 @@ def calculate_pricing(delivery_method):
         'insurance': INSURANCE_CENTS,
         'total_cost': total,
     }
+
+
+def estimated_delivery(shipment):
+    return shipment.created_at.date() + timedelta(days=DELIVERY_DAYS[shipment.delivery_method])
