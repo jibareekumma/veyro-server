@@ -66,7 +66,14 @@ class ShipmentSerializer(serializers.ModelSerializer):
         return estimated_delivery(obj)
 
     def create(self, validated_data):
-        pricing = calculate_pricing(validated_data['delivery_method'])
+        pricing = calculate_pricing(
+            validated_data['delivery_method'],
+            weight=validated_data['weight'],
+            length=validated_data['length'],
+            width=validated_data['width'],
+            height=validated_data['height'],
+            packages=1,
+        )
         with transaction.atomic():
             shipment = Shipment.objects.create(**validated_data, **pricing)
             ShipmentEvent.objects.create(

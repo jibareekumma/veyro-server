@@ -64,7 +64,7 @@ class ShipmentStatsView(APIView):
         )
 
         attention = None
-        flagged = queryset.filter(status='exception').order_by('-updated_at').first()
+        flagged = queryset.filter(status='exception').order_by ('-updated_at').first()
         if flagged:
             latest_event = flagged.events.first()
             attention = {
