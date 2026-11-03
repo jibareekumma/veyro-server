@@ -84,6 +84,27 @@ class ShipmentSerializer(serializers.ModelSerializer):
             )
         return shipment
 
+    def update(self, instance, validated_data):
+        pricing = calculate_pricing(
+            validated_data.get('delivery_method', instance.delivery_method),
+            weight=validated_data.get('weight', instance.weight),
+            length=validated_data.get('length', instance.length),
+            width=validated_data.get('width', instance.width),
+            height=validated_data.get('height', instance.height),
+            packages=1,
+        )
+        with transaction.atomic():
+            for field, value in {**validated_data, **pricing}.items():
+                setattr(instance, field, value)
+            instance.save()
+            ShipmentEvent.objects.create(
+                shipment=instance,
+                status=instance.status,
+                location=instance.sender_city,
+                note='Shipment details updated',
+            )
+        return instance
+
 
 class ShipmentEventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -99,6 +120,8 @@ class TrackingSerializer(serializers.ModelSerializer):
     estimated_delivery = serializers.SerializerMethodField()
     current_location = serializers.SerializerMethodField()
     package = serializers.SerializerMethodField()
+    billing = serializers.SerializerMethodField()
+    can_modify = serializers.SerializerMethodField()
     events = ShipmentEventSerializer(many=True, read_only=True)
 
     class Meta:
@@ -116,6 +139,8 @@ class TrackingSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
             'package',
+            'billing',
+            'can_modify',
             'events',
         )
 
@@ -130,9 +155,12 @@ class TrackingSerializer(serializers.ModelSerializer):
             return latest_event.location
         return obj.sender_city
 
-    def get_package(self, obj):
+    def is_owner(self, obj):
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated or obj.user_id != request.user.id:
+        return bool(request and request.user.is_authenticated and obj.user_id == request.user.id)
+
+    def get_package(self, obj):
+        if not self.is_owner(obj):
             return None
         return {
             'description': obj.description,
@@ -143,3 +171,16 @@ class TrackingSerializer(serializers.ModelSerializer):
             'height': str(obj.height),
             'fragile': obj.fragile,
         }
+
+    def get_billing(self, obj):
+        if not self.is_owner(obj):
+            return None
+        return {
+            'base_fee': obj.base_fee,
+            'fuel_surcharge': obj.fuel_surcharge,
+            'insurance': obj.insurance,
+            'total_cost': obj.total_cost,
+        }
+
+    def get_can_modify(self, obj):
+        return self.is_owner(obj) and obj.status == 'pending'
