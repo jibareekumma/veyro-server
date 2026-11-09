@@ -1,3 +1,5 @@
+
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -27,6 +29,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
+    avatar_data = models.BinaryField(null=True, blank=True, editable=False)
+    avatar_type = models.CharField(max_length=50, blank=True)
+    avatar_updated = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 

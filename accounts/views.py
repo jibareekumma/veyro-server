@@ -1,17 +1,25 @@
 
-
 import os
 
 from django.contrib.auth import authenticate, get_user_model
+from django.http import Http404, HttpResponse
+from django.utils import timezone
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import GoogleLoginSerializer, LoginSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    AvatarUploadSerializer,
+    GoogleLoginSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
 
 User = get_user_model()
 
@@ -29,7 +37,7 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(
-            {'user': UserSerializer(user).data, 'tokens': build_tokens(user)},
+            {'user': UserSerializer(user, context={'request': request}).data, 'tokens': build_tokens(user)},
             status=status.HTTP_201_CREATED,
         )
 
@@ -50,7 +58,7 @@ class LoginView(APIView):
                 {'detail': 'Invalid email or password.'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        return Response({'user': UserSerializer(user).data, 'tokens': build_tokens(user)})
+        return Response({'user': UserSerializer(user, context={'request': request}).data, 'tokens': build_tokens(user)})
 
 
 class GoogleLoginView(APIView):
@@ -95,11 +103,48 @@ class GoogleLoginView(APIView):
                 {'detail': 'This account is disabled.'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        return Response({'user': UserSerializer(user).data, 'tokens': build_tokens(user)})
+        return Response({'user': UserSerializer(user, context={'request': request}).data, 'tokens': build_tokens(user)})
 
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(request.user, context={'request': request}).data)
+
+
+class AvatarView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = AvatarUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        image = serializer.validated_data['avatar']
+        user = request.user
+        user.avatar_data = image.read()
+        user.avatar_type = image.detected_type
+        user.avatar_updated = timezone.now()
+        user.save(update_fields=['avatar_data', 'avatar_type', 'avatar_updated'])
+        return Response(UserSerializer(user, context={'request': request}).data)
+
+    def delete(self, request):
+        user = request.user
+        user.avatar_data = None
+        user.avatar_type = ''
+        user.avatar_updated = None
+        user.save(update_fields=['avatar_data', 'avatar_type', 'avatar_updated'])
+        return Response(UserSerializer(user, context={'request': request}).data)
+
+
+class AvatarImageView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, user_id):
+        user = User.objects.filter(id=user_id).first()
+        if user is None or not user.avatar_data:
+            raise Http404
+        response = HttpResponse(bytes(user.avatar_data), content_type=user.avatar_type or 'image/jpeg')
+        response['Cache-Control'] = 'public, max-age=31536000, immutable'
+        return response

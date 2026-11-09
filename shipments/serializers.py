@@ -183,4 +183,4 @@ class TrackingSerializer(serializers.ModelSerializer):
         }
 
     def get_can_modify(self, obj):
-        return self.is_owner(obj) and obj.status == 'pending'
+        return self.is_owner(obj) and obj.status == 'pending' 

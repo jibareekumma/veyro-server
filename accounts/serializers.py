@@ -7,11 +7,53 @@ from rest_framework import serializers
 
 User = get_user_model()
 
+MAX_AVATAR_SIZE = 2 * 1024 * 1024
+ALLOWED_AVATAR_TYPES = ('image/jpeg', 'image/png', 'image/webp', 'image/gif')
+
+
+def detect_image_type(header):
+    if header.startswith(b'\xff\xd8\xff'):
+        return 'image/jpeg'
+    if header.startswith(b'\x89PNG\r\n\x1a\n'):
+        return 'image/png'
+    if header.startswith(b'GIF87a') or header.startswith(b'GIF89a'):
+        return 'image/gif'
+    if header[0:4] == b'RIFF' and header[8:12] == b'WEBP':
+        return 'image/webp'
+    return None
+
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'email', 'full_name', 'phone', 'country')
+        fields = ('id', 'email', 'full_name', 'phone', 'country', 'avatar')
+
+    def get_avatar(self, obj):
+        if not obj.avatar_data:
+            return None
+        stamp = int(obj.avatar_updated.timestamp()) if obj.avatar_updated else 0
+        path = f'/api/auth/avatar/{obj.id}/?v={stamp}'
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(path)
+        return path
+
+
+class AvatarUploadSerializer(serializers.Serializer):
+    avatar = serializers.FileField()
+
+    def validate_avatar(self, value):
+        if value.size > MAX_AVATAR_SIZE:
+            raise serializers.ValidationError('Image must be 2MB or smaller.')
+        header = value.read(16)
+        value.seek(0)
+        detected = detect_image_type(header)
+        if detected is None or detected not in ALLOWED_AVATAR_TYPES:
+            raise serializers.ValidationError('Upload a JPG, PNG, WEBP or GIF image.')
+        value.detected_type = detected
+        return value
 
 
 class RegisterSerializer(serializers.ModelSerializer):
