@@ -148,3 +148,4 @@ class AvatarImageView(APIView):
         response = HttpResponse(bytes(user.avatar_data), content_type=user.avatar_type or 'image/jpeg')
         response['Cache-Control'] = 'public, max-age=31536000, immutable'
         return response
+    
