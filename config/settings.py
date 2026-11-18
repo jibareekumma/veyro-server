@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'shipments',
     'addresses',
     'notifications',
+    'support',
+    'adminpanel',
 ]
 
 MIDDLEWARE = [

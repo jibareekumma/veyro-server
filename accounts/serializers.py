@@ -28,7 +28,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'full_name', 'phone', 'country', 'avatar')
+        fields = ('id', 'email', 'full_name', 'phone', 'country', 'role', 'avatar')
+        read_only_fields = ('role',)
 
     def get_avatar(self, obj):
         if not obj.avatar_data:

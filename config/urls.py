@@ -13,6 +13,8 @@ urlpatterns = [
     path('api/shipments/', include('shipments.urls')),
     path('api/addresses/', include('addresses.urls')),
     path('api/notifications/', include('notifications.urls')),
+    path('api/support/', include('support.urls')),
+    path('api/admin/', include('adminpanel.urls')),
 
     path('api/quotes/', QuoteView.as_view()),
 ]

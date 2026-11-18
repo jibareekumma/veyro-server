@@ -18,14 +18,30 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'super_admin')
         return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    CUSTOMER = 'customer'
+    SUPPORT = 'support'
+    OPERATIONS = 'operations'
+    FINANCE = 'finance'
+    SUPER_ADMIN = 'super_admin'
+
+    ROLE_CHOICES = [
+        (CUSTOMER, 'Customer'),
+        (SUPPORT, 'Support'),
+        (OPERATIONS, 'Operations'),
+        (FINANCE, 'Finance'),
+        (SUPER_ADMIN, 'Super Admin'),
+    ]
+
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=30, blank=True)
     country = models.CharField(max_length=100, blank=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=CUSTOMER)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -37,6 +53,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
+
+    @property
+    def is_staff_member(self):
+        return self.role != self.CUSTOMER
 
     def __str__(self):
         return self.email
