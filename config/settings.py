@@ -5,8 +5,11 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-only-change-me')
 
@@ -140,6 +143,8 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://127.0.0.1:5173',
     'https://veyro-logistics.netlify.app',
 ]
