@@ -17,4 +17,4 @@ urlpatterns = [
     path('api/admin/', include('adminpanel.urls')),
 
     path('api/quotes/', QuoteView.as_view()),
-]
+] 
