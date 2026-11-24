@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('api/support/', include('support.urls')),
     path('api/admin/', include('adminpanel.urls')),
+    path('api/admin/', include('adminpanel.parcel_urls')),
 
     path('api/quotes/', QuoteView.as_view()),
-] 
+]

@@ -23,8 +23,8 @@ class Notification(models.Model):
     message = models.CharField(max_length=255)
     tracking_id = models.CharField(max_length=20, blank=True)
     is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
+    created_at = models.DateTimeField(auto_now_add=True) 
+  
     class Meta:
         ordering = ['-created_at', '-id']
         indexes = [
